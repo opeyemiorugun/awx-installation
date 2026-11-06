@@ -1,0 +1,64 @@
+---
+# Self-service log retrieval for AAP.
+# Survey variables: app_name, since_minutes, keyword (optional)
+# Fixed variable set on each job template (not in the survey): target_env = pilot or prod
+# Credential (OpenShift/Kubernetes API Bearer Token) injects K8S_AUTH_HOST and K8S_AUTH_API_KEY.
+# The execution environment must contain the `oc` CLI.
+
+- name: Fetch masked application logs
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - services.yml
+  vars:
+    max_since_minutes: 60
+    max_lines: 5000
+    cli_bin: kubectl            # use kubectl for a local lab
+    cli_extra_args: []     # lab only: ['--insecure-skip-tls-verify=true']
+    oc_auth:
+      - "--server={{ lookup('env', 'K8S_AUTH_HOST') }}"
+      - "--token={{ lookup('env', 'K8S_AUTH_API_KEY') }}"
+
+  tasks:
+    - name: Validate inputs against the service catalog
+      ansible.builtin.assert:
+        that:
+          - app_name in services
+          - target_env in namespaces
+          - since_minutes | int > 0
+          - since_minutes | int <= max_since_minutes
+        fail_msg: "Service not found for this environment, or time range above {{ max_since_minutes }} minutes."
+
+    - name: Resolve namespace and deployment name from the catalog
+      ansible.builtin.set_fact:
+        ns: "{{ namespaces[target_env] }}"
+        dep_name: "{{ app_name }}"
+
+    - name: Read the deployment's own pod selector
+      ansible.builtin.command:
+        argv: "{{ [cli_bin] + oc_auth + cli_extra_args + ['get', 'deployment', dep_name, '-n', ns, '-o', 'json'] }}"
+      register: dep
+      changed_when: false
+      no_log: true
+
+    - name: Build label selector from the deployment
+      ansible.builtin.set_fact:
+        selector: "{% set m = (dep.stdout | from_json).spec.selector.matchLabels %}{{ m.keys() | list | zip(m.values() | list) | map('join', '=') | join(',') }}"
+
+    - name: Pull logs from OpenShift
+      ansible.builtin.command:
+        argv: >-
+          {{ [cli_bin] + oc_auth + cli_extra_args + ['logs', '-n', ns, '-l', selector,
+          '--since=' ~ (since_minutes | int) ~ 'm', '--tail=' ~ max_lines,
+          '--all-containers', '--prefix', '--max-log-requests=10'] }}
+      register: raw_logs
+      changed_when: false
+      no_log: true
+
+    - name: Show result
+      ansible.builtin.debug:
+        msg:
+          - "Requested by: {{ tower_user_name | default('unknown') }}"
+          - "App: {{ app_name }} | Env: {{ target_env }} | Last {{ since_minutes }} min | Lines: {{ final_logs | length }}"
+          - "{{ final_logs }}"
