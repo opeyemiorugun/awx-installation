@@ -73,4 +73,3 @@
           - "Requested by: {{ tower_user_name | default('unknown') }}"
           - "App: {{ app_name }} | Env: {{ target_env }} | Last {{ since_minutes }} min | Lines: {{ final_logs | length }}"
           - "{{ final_logs }}"
-    - name: Show result
