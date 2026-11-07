@@ -15,7 +15,7 @@
     max_since_minutes: 60
     max_lines: 5000
     cli_bin: kubectl            # use kubectl for a local lab
-    cli_extra_args: []     # lab only: ['--insecure-skip-tls-verify=true']
+    cli_extra_args: ['--insecure-skip-tls-verify=true']     # lab only: ['--insecure-skip-tls-verify=true']
     oc_auth:
       - "--server={{ lookup('env', 'K8S_AUTH_HOST') }}"
       - "--token={{ lookup('env', 'K8S_AUTH_API_KEY') }}"
