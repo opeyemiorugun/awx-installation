@@ -2,8 +2,8 @@
 # Service catalog: one entry per service. Generate the namespaces from the cluster export.
 # Optional field: deployment (only if the deployment name differs from the service name).
 services:
-  - integration-channel-example-one:
-  - integration-channel-example-two:
+  - integration-channel-example-one
+  - integration-channel-example-two
 namespaces: 
   pilot: integration-pilot
   prod: integration-prod

@@ -60,6 +60,13 @@
       ansible.builtin.set_fact:
         final_logs: "{{ raw_logs.stdout_lines }}"
 
+    - name: Apply optional keyword filter (after masking)
+      ansible.builtin.set_fact:
+        final_logs: >-
+          {{ final_logs | select('search', keyword | regex_escape) | list
+             if (keyword | default('') | length) > 0 else final_logs }}
+      no_log: true
+
     - name: Show result
       ansible.builtin.debug:
         msg:
