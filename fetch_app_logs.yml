@@ -24,8 +24,7 @@
       ansible.builtin.assert:
         that:
           - app_name in services
-          - target_env in namespaces
-        fail_msg: "Service not found for this environment, or time range above {{ max_since_minutes }} minutes."
+        fail_msg: "Service not found for this environment"
 
     - name: Resolve namespace and deployment name from the catalog
       ansible.builtin.set_fact:
