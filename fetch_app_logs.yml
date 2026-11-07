@@ -56,9 +56,14 @@
       changed_when: false
       no_log: true
 
+    - name: Set final logs output
+      ansible.builtin.set_fact:
+        final_logs: "{{ raw_logs.stdout_lines }}"
+
     - name: Show result
       ansible.builtin.debug:
         msg:
           - "Requested by: {{ tower_user_name | default('unknown') }}"
           - "App: {{ app_name }} | Env: {{ target_env }} | Last {{ since_minutes }} min | Lines: {{ final_logs | length }}"
           - "{{ final_logs }}"
+    - name: Show result
