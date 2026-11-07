@@ -40,7 +40,7 @@
         argv: "{{ [cli_bin] + oc_auth + cli_extra_args + ['get', 'deployment', dep_name, '-n', ns, '-o', 'json'] }}"
       register: dep
       changed_when: false
-      no_log: true
+     # no_log: true
 
     - name: Build label selector from the deployment
       ansible.builtin.set_fact:
@@ -54,7 +54,7 @@
           '--all-containers', '--prefix', '--max-log-requests=10'] }}
       register: raw_logs
       changed_when: false
-      no_log: true
+     # no_log: true
 
     - name: Set final logs output
       ansible.builtin.set_fact:
@@ -65,7 +65,7 @@
         final_logs: >-
           {{ final_logs | select('search', keyword | regex_escape) | list
              if (keyword | default('') | length) > 0 else final_logs }}
-      no_log: true
+      #no_log: true
 
     - name: Show result
       ansible.builtin.debug:
