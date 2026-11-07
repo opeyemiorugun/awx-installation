@@ -1,7 +1,8 @@
 ---
 # Self-service log retrieval for AAP.
 # Survey variables: app_name, since_minutes, keyword (optional)
-# Fixed variable set on each job template (not in the survey): target_env = pilot or prod
+# Fixed variables set on each job template (not in the survey):
+#   target_env = pilot or prod (the namespace tier), cluster_name = prod or dr (display only)
 # Credential (OpenShift/Kubernetes API Bearer Token) injects K8S_AUTH_HOST and K8S_AUTH_API_KEY.
 # The execution environment must contain the `oc` CLI.
 
@@ -13,6 +14,7 @@
     - services.yml
   vars:
     max_lines: 5000
+    cluster_name: prod # display only, not used in the logic
     cli_bin: kubectl            # use kubectl for a local lab
     cli_extra_args: ['--insecure-skip-tls-verify=true']     # lab only: ['--insecure-skip-tls-verify=true']
     oc_auth:
@@ -23,8 +25,8 @@
     - name: Validate inputs against the service catalog
       ansible.builtin.assert:
         that:
-          - app_name in services
-        fail_msg: "Service not found for this environment"
+          - app_name in services[target_env]
+        fail_msg: "Service not found in the {{ target_env }} namespace tier. Check the service catalog."
 
     - name: Resolve namespace and deployment name from the catalog
       ansible.builtin.set_fact:
@@ -37,6 +39,11 @@
       register: dep
       changed_when: false
       no_log: true
+    
+    - name: Confirm the deployment exists and is readable
+      ansible.builtin.assert:
+        that: dep.rc == 0
+        fail_msg: "Could not read '{{ app_name }}' in {{ ns }} on the {{ cluster_name }} cluster. It may not be deployed there, or access is missing."
 
     - name: Build label selector from the deployment
       ansible.builtin.set_fact:
